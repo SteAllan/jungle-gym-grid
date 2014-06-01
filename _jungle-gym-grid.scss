@@ -1,0 +1,646 @@
+/*------------------------------------*\
+    $JUNGLE GYM GRID
+\*------------------------------------*/
+/**
+ * CONTENTS
+ * INTRODUCTION.........How the grid system works.
+ * VARIABLES............Your settings.
+ * MIXINS...............Library mixins.
+ * GRID SETUP...........Build the grid structure.
+ * WIDTHS...............Build our responsive widths around our breakpoints.
+ * PUSH.................Push classes.
+ * PULL.................Pull classes.
+ */
+
+
+
+
+
+/*------------------------------------*\
+    $INTRODUCTION
+\*------------------------------------*/
+/**
+ * TODO
+ */
+
+
+
+
+
+/*------------------------------------*\
+    $VARIABLES
+\*------------------------------------*/
+/**
+ * Set whether you want to use Compass mixins or not.
+ * If not, you'll need to handle vendor prefixes yourself.
+ */
+ $jgg-use-compass: true !default;
+
+
+/**
+ * If you are building a non-responsive site but would still like to use
+ * jungle-gym-grid, set this to ‘false’:
+ */
+$jgg-responsive:            true!default;
+
+
+/**
+ * Set the spacing between your grid items.
+ */
+$jgg-gutter:                24px!default;
+
+
+/**
+ * Would you like Sass’ silent classes, or regular CSS classes?
+ */
+$jgg-use-silent-classes:    false!default;
+
+
+/**
+ * Would you like push and pull classes enabled?
+ */
+$jgg-push:                  false!default;
+$jgg-pull:                  false!default;
+
+
+/**
+ * Using `inline-block` means that the grid items need their whitespace removing
+ * in order for them to work correctly. Set the following to 'true' if you are
+ * going to achieve this by manually removing/commenting out any whitespace in
+ * the HTML yourself.
+ * If you don't use the markup fix, you'll need to define a base font size in
+ * $base-font-size. If you're using Compass this will already be defined.
+ */
+$jgg-use-markup-fix: false !default;
+
+
+/** REPLACED BY CONTEXTS
+ * Define your breakpoints. The first value is the prefix that shall be used for
+ * your classes (e.g. `.palm--one-half`), the second value is the media query
+ * that the breakpoint fires at.
+ */
+$jgg-breakpoints: () !default;
+
+
+/** REPLACES BREAKPOINTS
+ * Define your contexts e.g. John: 12 '(max-width: 500px)'
+ * The first value is the context's name, the second is the number of columns and the third is the media query at which this context applies.
+ */
+$jgg-contexts: () !default;
+
+
+/** REPLACED BY CONTEXTS
+ * Define which namespaced breakpoints you would like to generate for each of
+ * widths, push and pull. This is handy if you only need pull on, say, desk, or
+ * you only need a new width breakpoint at mobile sizes. It allows you to only
+ * compile as much CSS as you need. All are turned on by default, but you can
+ * add and remove breakpoints at will.
+ *
+ * Push and pull shall only be used if `$jgg-push` and/or `$jgg-pull` and `$jgg-responsive`
+ * have been set to ‘true’.
+ */
+$jgg-breakpoint-has-widths: () !default;
+$jgg-breakpoint-has-push:   () !default;
+$jgg-breakpoint-has-pull:   () !default;
+
+
+/** REPLACES BREAKPOINTS
+ * Set which contexts you would like to generate widths, push and pull for.
+ * This allows you to compile only as much as you need.
+ */
+$jgg-context-has-widths: () !default;
+$jgg-context-has-push:   () !default;
+$jgg-context-has-pull:   () !default;
+
+
+/**
+ * You do not need to edit anything from this line onward.
+ */
+$jgg-class-type:            unquote(".");
+
+@if $jgg-use-silent-classes == true{
+    $jgg-class-type:        unquote("%");
+}
+
+
+
+
+
+/*------------------------------------*\
+    $MIXINS
+\*------------------------------------*/
+/**
+ * These mixins are for the library to use only, you should not need to modify
+ * them at all.
+ *
+ * Enclose a block of code with a media query as named in `$jgg-breakpoints`.
+ */
+@mixin grid-media-query($jgg-media-query){
+    $jgg-breakpoint-found: false;
+
+    @each $jgg-breakpoint in $jgg-breakpoints{
+        $jgg-name: nth($jgg-breakpoint, 1);
+        $jgg-declaration: nth($jgg-breakpoint, 2);
+
+        @if $jgg-media-query == $jgg-name and $jgg-declaration{
+            $jgg-breakpoint-found: true;
+
+            @media only screen and #{$jgg-declaration}{
+                @content;
+            }
+        }
+    }
+
+    @if $jgg-breakpoint-found == false{
+        @warn "Breakpoint ‘#{$jgg-media-query}’ does not exist"
+    }
+}
+
+@mixin jgg-grid-media-query($jgg-media-query) {
+    $jgg-context-found: false;
+
+    @each $jgg-context-name, $jgg-context-values in $jgg-contexts {
+        $jgg-context-query: nth($jgg-context-values, 2);
+
+        @if $jgg-media-query == $jgg-context-name and $jgg-context-query {
+            $jgg-context-found: true;
+
+            @media only screen and #{$jgg-context-query}{
+                @content;
+            }
+        }
+    }
+
+    @if $jgg-context-found == false{
+        @warn "Context ‘#{$jgg-media-query}’ does not exist"
+    }
+}
+
+
+/**
+ * Drop relative positioning into silent classes which can’t take advantage of
+ * the `[class*="push--"]` and `[class*="pull--"]` selectors.
+ */
+@mixin silent-relative(){
+    @if $jgg-use-silent-classes == true{
+        position:relative;
+    }
+}
+
+
+
+
+
+/*------------------------------------*\
+    $GRID SETUP
+\*------------------------------------*/
+/**
+ * 1. Allow the grid system to be used on lists.
+ * 2. Remove any margins and paddings that might affect the grid system.
+ * 3. Apply a negative `margin-left` to negate the columns’ gutters.
+ * 4. Set the font size to '0' to remove whitespace between grid items.
+ */
+#{$jgg-class-type}grid {
+    list-style:none;                /* [1] */
+    margin:0;                       /* [2] */
+    padding:0;                      /* [2] */
+    margin-left:-$jgg-gutter;           /* [3] */
+    @if $jgg-use-markup-fix == false {
+        font-size: 0;               /* [4] */
+    }
+}
+
+
+    /**
+     * 1. Cause columns to stack side-by-side.
+     * 2. Space columns apart.
+     * 3. Align columns to the tops of each other.
+     * 4. Required to combine fluid widths and fixed gutters.
+     ** 4.1. Use Compass mixin.
+     ** 4.2. Don't use Compass mixin.
+     * 5. Unsets font-size: 0; set on the grid container.
+     */
+    #{$jgg-class-type}grid__item {
+        display:inline-block;           /* [1] */
+        padding-left:$jgg-gutter;           /* [2] */
+        vertical-align:top;             /* [3] */
+        @if $jgg-use-compass == true {
+            @include box-sizing(border-box);    /* [4.1] */
+        }
+        @if $jgg-use-compass != true {
+            -webkit-box-sizing:border-box;      /* [4.2] */
+               -moz-box-sizing:border-box;      /* [4.2] */
+                    box-sizing:border-box;      /* [4.2] */
+        }
+        @if $jgg-use-markup-fix == false {
+            font-size: $base-font-size; /* [5] */
+        }
+    }
+
+
+/**
+ * Reversed grids allow you to structure your source in the opposite order to
+ * how your rendered layout will appear. Extends `.grid`.
+ */
+#{$jgg-class-type}grid--rev{
+    direction:rtl;
+    text-align:left;
+
+    > #{$jgg-class-type}grid__item{
+        direction:ltr;
+        text-align:left;
+    }
+}
+
+
+/**
+ * Gutterless grids have all the properties of regular grids, minus any spacing.
+ * Extends `.grid`.
+ */
+#{$jgg-class-type}grid--full{
+    margin-left:0;
+
+    > #{$jgg-class-type}grid__item{
+        padding-left:0;
+    }
+}
+
+
+/**
+ * Align the entire grid to the right. Extends `.grid`.
+ */
+#{$jgg-class-type}grid--right{
+    text-align:right;
+
+    > #{$jgg-class-type}grid__item{
+        text-align:left;
+    }
+}
+
+
+/**
+ * Centered grids align grid items centrally without needing to use push or pull
+ * classes. Extends `.grid`.
+ */
+#{$jgg-class-type}grid--center{
+    text-align:center;
+
+    > #{$jgg-class-type}grid__item{
+        text-align:left;
+    }
+}
+
+
+/**
+ * Align grid cells vertically (`.grid--middle` or `.grid--bottom`). Extends
+ * `.grid`.
+ */
+#{$jgg-class-type}grid--middle{
+
+    > #{$jgg-class-type}grid__item{
+        vertical-align:middle;
+    }
+}
+
+#{$jgg-class-type}grid--bottom{
+
+    > #{$jgg-class-type}grid__item{
+        vertical-align:bottom;
+    }
+}
+
+
+/**
+ * Create grids with narrower gutters. Extends `.grid`.
+ */
+#{$jgg-class-type}grid--narrow{
+    margin-left:-($jgg-gutter / 2);
+
+    > #{$jgg-class-type}grid__item{
+        padding-left:$jgg-gutter / 2;
+    }
+}
+
+
+/**
+ * Create grids with wider gutters. Extends `.grid`.
+ */
+#{$jgg-class-type}grid--wide{
+    margin-left:-($jgg-gutter * 2);
+
+    > #{$jgg-class-type}grid__item{
+        padding-left:$jgg-gutter * 2;
+    }
+}
+
+
+/**
+ * Padded grids add left and right padding to the grid container.
+ */
+
+#{$jgg-class-type}grid--padded {
+    padding-right: $jgg-gutter;
+    padding-left: $jgg-gutter;
+}
+
+#{$jgg-class-type}grid--padded-narrow {
+    padding-right: $jgg-gutter / 2;
+    padding-left: $jgg-gutter / 2;
+}
+
+#{$jgg-class-type}grid--padded-wide {
+    padding-right: $jgg-gutter * 2;
+    padding-left: $jgg-gutter * 2;
+}
+
+
+
+
+
+/*------------------------------------*\
+    $WIDTHS
+\*------------------------------------*/
+/**
+ * Create our width classes, prefixed by the specified namespace.
+ */
+ 
+@mixin jgg-build-grid($jgg-namespace: "") {
+
+    @each $jgg-context-name, $jgg-context-values in $jgg-contexts {
+        $jgg-context-columns: nth($jgg-context-values, 1);
+        $jgg-context-query: nth($jgg-context-values, 2);
+
+        $index: 0;
+        @while ($index < $jgg-context-columns) {
+            $index: $index + 1;
+
+            #{$jgg-class-type}#{$jgg-namespace}span-#{$index}-of-#{$jgg-context-columns} {
+                width: percentage($index / $jgg-context-columns);
+            }
+        }
+    }
+}
+
+
+/**
+ * Our regular, non-responsive width classes.
+ */
+
+@include jgg-build-grid();
+
+
+/**
+ * Our responsive classes, if we have enabled them.
+ */
+@if $jgg-responsive == true {
+
+    @each $jgg-name in $jgg-context-has-widths {
+        @include jgg-grid-media-query($jgg-name) {
+            @include jgg-build-grid('#{$jgg-name}--');
+        }
+    }
+}
+
+
+
+
+
+/*------------------------------------*\
+    $PUSH
+\*------------------------------------*/
+/**
+ * Push classes, to move grid items over to the right by certain amounts.
+ */
+@mixin push-setup($jgg-namespace: ""){
+
+    /**
+     * Whole
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-whole           { left:100%; @include silent-relative(); }
+
+
+    /**
+     * Halves
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-half            { left:50%; @include silent-relative(); }
+
+
+    /**
+     * Thirds
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-third           { left:33.333%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-thirds          { left:66.666%; @include silent-relative(); }
+
+
+    /**
+     * Quarters
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-quarter         { left:25%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-quarters        { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-quarters      { left:75%; @include silent-relative(); }
+
+
+    /**
+     * Fifths
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-fifth           { left:20%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-fifths          { left:40%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-fifths        { left:60%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}four-fifths         { left:80%; @include silent-relative(); }
+
+
+    /**
+     * Sixths
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-sixth           { left:16.666%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-sixths          { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-third; }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-sixths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}push--#{$jgg-namespace}four-sixths         { @extend #{$jgg-class-type}push--#{$jgg-namespace}two-thirds; }
+    #{$jgg-class-type}push--#{$jgg-namespace}five-sixths         { left:83.333%; @include silent-relative(); }
+
+
+    /**
+     * Eighths
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-eighth          { left:12.5%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-eighths         { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-quarter; }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-eighths       { left:37.5%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}four-eighths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}push--#{$jgg-namespace}five-eighths        { left:62.5%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}six-eighths         { @extend #{$jgg-class-type}push--#{$jgg-namespace}three-quarters; }
+    #{$jgg-class-type}push--#{$jgg-namespace}seven-eighths       { left:87.5%; @include silent-relative(); }
+
+
+    /**
+     * Tenths
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-tenth           { left:10%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-tenths          { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-fifth; }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-tenths        { left:30%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}four-tenths         { @extend #{$jgg-class-type}push--#{$jgg-namespace}two-fifths; }
+    #{$jgg-class-type}push--#{$jgg-namespace}five-tenths         { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}push--#{$jgg-namespace}six-tenths          { @extend #{$jgg-class-type}push--#{$jgg-namespace}three-fifths; }
+    #{$jgg-class-type}push--#{$jgg-namespace}seven-tenths        { left:70%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}eight-tenths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}four-fifths; }
+    #{$jgg-class-type}push--#{$jgg-namespace}nine-tenths         { left:90%; @include silent-relative(); }
+
+
+    /**
+     * Twelfths
+     */
+    #{$jgg-class-type}push--#{$jgg-namespace}one-twelfth         { left:8.333%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}two-twelfths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-sixth; }
+    #{$jgg-class-type}push--#{$jgg-namespace}three-twelfths      { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-quarter; }
+    #{$jgg-class-type}push--#{$jgg-namespace}four-twelfths       { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-third; }
+    #{$jgg-class-type}push--#{$jgg-namespace}five-twelfths       { left:41.666%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}six-twelfths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}push--#{$jgg-namespace}seven-twelfths      { left:58.333%; @include silent-relative(); }
+    #{$jgg-class-type}push--#{$jgg-namespace}eight-twelfths      { @extend #{$jgg-class-type}push--#{$jgg-namespace}two-thirds; }
+    #{$jgg-class-type}push--#{$jgg-namespace}nine-twelfths       { @extend #{$jgg-class-type}push--#{$jgg-namespace}three-quarters; }
+    #{$jgg-class-type}push--#{$jgg-namespace}ten-twelfths        { @extend #{$jgg-class-type}push--#{$jgg-namespace}five-sixths; }
+    #{$jgg-class-type}push--#{$jgg-namespace}eleven-twelfths     { left:91.666%; @include silent-relative(); }
+}
+
+@if $jgg-push == true {
+
+    /**
+     * Not a particularly great selector, but the DRYest way to do things.
+     */
+    [class*="push--"]{ position:relative; }
+
+
+    @include push-setup();
+
+
+    @if $jgg-responsive == true{
+        @each $jgg-name in $jgg-breakpoint-has-push {
+            @include jgg-grid-media-query($jgg-name) {
+               @include  push-setup('#{$jgg-name}--');
+            }
+        }
+    }
+
+
+}
+
+
+
+
+
+/*------------------------------------*\
+    $PULL
+\*------------------------------------*/
+/**
+ * Pull classes, to move grid items back to the left by certain amounts.
+ */
+@mixin pull-setup($jgg-namespace: ""){
+
+    /**
+     * Whole
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-whole           { right:100%; @include silent-relative(); }
+
+
+    /**
+     * Halves
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-half            { right:50%; @include silent-relative(); }
+
+
+    /**
+     * Thirds
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-third           { right:33.333%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-thirds          { right:66.666%; @include silent-relative(); }
+
+
+    /**
+     * Quarters
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-quarter         { right:25%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-quarters        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-quarters      { right:75%; @include silent-relative(); }
+
+
+    /**
+     * Fifths
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-fifth           { right:20%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-fifths          { right:40%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-fifths        { right:60%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}four-fifths         { right:80%; @include silent-relative(); }
+
+
+    /**
+     * Sixths
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-sixth           { right:16.666%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-sixths          { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-third; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-sixths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}four-sixths         { @extend #{$jgg-class-type}pull--#{$jgg-namespace}two-thirds; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}five-sixths         { right:83.333%; @include silent-relative(); }
+
+
+    /**
+     * Eighths
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-eighth          { right:12.5%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-eighths         { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-quarter; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-eighths       { right:37.5%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}four-eighths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}five-eighths        { right:62.5%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}six-eighths         { @extend #{$jgg-class-type}pull--#{$jgg-namespace}three-quarters; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}seven-eighths       { right:87.5%; @include silent-relative(); }
+
+
+    /**
+     * Tenths
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-tenth           { right:10%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-tenths          { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-fifth; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-tenths        { right:30%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}four-tenths         { @extend #{$jgg-class-type}pull--#{$jgg-namespace}two-fifths; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}five-tenths         { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}six-tenths          { @extend #{$jgg-class-type}pull--#{$jgg-namespace}three-fifths; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}seven-tenths        { right:70%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}eight-tenths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}four-fifths; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}nine-tenths         { right:90%; @include silent-relative(); }
+
+
+    /**
+     * Twelfths
+     */
+    #{$jgg-class-type}pull--#{$jgg-namespace}one-twelfth         { right:8.333%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}two-twelfths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-sixth; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}three-twelfths      { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-quarter; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}four-twelfths       { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-third; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}five-twelfths       { right:41.666%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}six-twelfths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}one-half; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}seven-twelfths      { right:58.333%; @include silent-relative(); }
+    #{$jgg-class-type}pull--#{$jgg-namespace}eight-twelfths      { @extend #{$jgg-class-type}pull--#{$jgg-namespace}two-thirds; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}nine-twelfths       { @extend #{$jgg-class-type}pull--#{$jgg-namespace}three-quarters; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}ten-twelfths        { @extend #{$jgg-class-type}pull--#{$jgg-namespace}five-sixths; }
+    #{$jgg-class-type}pull--#{$jgg-namespace}eleven-twelfths     { right:91.666%; @include silent-relative(); }
+}
+
+@if $jgg-pull == true{
+
+    /**
+     * Not a particularly great selector, but the DRYest way to do things.
+     */
+    [class*="pull--"]{ position:relative; }
+
+
+    @include pull-setup();
+
+
+    @if $jgg-responsive == true{
+        @each $jgg-name in $jgg-breakpoint-has-pull {
+            @include jgg-grid-media-query($jgg-name) {
+               @include  pull-setup('#{$jgg-name}--');
+            }
+        }
+    }
+
+
+}
